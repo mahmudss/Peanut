@@ -33,3 +33,5 @@ http://SERVER_IP:8000/web/index.html
 ````
 
 Use localhost if running locally.
+
+[Doc](https://docs.google.com/document/d/15aIy1n87Y-ngJkCs8ET_5ZO3ME1YtqPsOBtKiPxiJKQ/edit?usp=sharing)
