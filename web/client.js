@@ -10,20 +10,6 @@ async function api(path, opts) {
   return r.json();
 }
 
-/*/ Register Service Worker (optional cache)
-(async () => {
-  if ("serviceWorker" in navigator) {
-    try {
-      await navigator.serviceWorker.register("./sw.js");
-      log("Service Worker registered (client cache enabled).");
-    } catch (e) {
-      log("Service Worker failed: " + e.message);
-    }
-  } else {
-    log("Service Worker not supported.");
-  }
-})();*/
-
 async function refreshList() {
   const data = await api("/api/videos");
   const sel = document.getElementById("videoList");
@@ -72,13 +58,25 @@ async function fetchWithTiming(url) {
   return { ok: r.ok, buf, ms, bytes, kbps, status: r.status, url };
 }
 
-function chooseMime(manifest) {
-  // VIDEO ONLY
+function chooseVideoMime(manifest) {
   const candidates = [
-    manifest.mime,
+    manifest.video_mime,
+    manifest.mime, // backward compat
     'video/mp4; codecs="avc1.42E01E"',
     'video/mp4; codecs="avc1.42C01E"',
     'video/mp4; codecs="avc1.4D401F"',
+  ].filter(Boolean);
+
+  for (const m of candidates) {
+    if (MediaSource.isTypeSupported(m)) return m;
+  }
+  return null;
+}
+
+function chooseAudioMime(manifest) {
+  const candidates = [
+    manifest.audio_mime,
+    'audio/mp4; codecs="mp4a.40.2"',
   ].filter(Boolean);
 
   for (const m of candidates) {
@@ -102,6 +100,12 @@ async function playVideo(videoId) {
   const manifest = await (await fetch(`/videos/${videoId}/manifest.json`)).json();
 
   const video = document.getElementById("v");
+
+  // Reset element fully
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+
   const ms = new MediaSource();
   video.src = URL.createObjectURL(ms);
 
@@ -110,51 +114,92 @@ async function playVideo(videoId) {
     log("VIDEO ERROR: " + (err ? `code=${err.code}` : "unknown"));
   });
 
-  let sourceBuffer;
+  let videoSB;
+  let audioSB;
+
   let currentRes = "360p";
   let chunkIndex = 1;
   let estThroughput = 1500;
 
   ms.addEventListener("sourceopen", async () => {
     try {
-      const chosenMime = chooseMime(manifest);
-      if (!chosenMime) throw new Error("No supported MIME codec found for MediaSource.");
-      log("Using MIME: " + chosenMime);
+      const vMime = chooseVideoMime(manifest);
+      const aMime = chooseAudioMime(manifest);
+      if (!vMime) throw new Error("No supported VIDEO MIME codec found for MediaSource.");
+      if (!aMime) throw new Error("No supported AUDIO MIME codec found for MediaSource.");
 
-      sourceBuffer = ms.addSourceBuffer(chosenMime);
+      log("Video MIME: " + vMime);
+      log("Audio MIME: " + aMime);
 
-      const initUrl = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
-      log(`Init: ${initUrl}`);
-      const init = await fetchWithTiming(initUrl);
-      if (!init.ok) throw new Error(`Init fetch failed (${init.status}): ${init.url}`);
-      await appendBuf(sourceBuffer, init.buf);
+      videoSB = ms.addSourceBuffer(vMime);
+      audioSB = ms.addSourceBuffer(aMime);
 
-      const maxChunks = manifest.resolutions[currentRes].chunk_count;
-      log(`maxChunks @${currentRes}: ${maxChunks}`);
-      if (!maxChunks || maxChunks < 1) throw new Error(`No chunks found for ${currentRes}.`);
+      // Some browsers are happier with explicit mode
+      try { videoSB.mode = "segments"; } catch {}
+      try { audioSB.mode = "segments"; } catch {}
 
+      // --- init segments ---
+      const vInitUrl = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
+      const aInitUrl = `${manifest.audio.path}/${manifest.init_name}`;
+
+      log(`Video init: ${vInitUrl}`);
+      log(`Audio init: ${aInitUrl}`);
+
+      const [vInit, aInit] = await Promise.all([
+        fetchWithTiming(vInitUrl),
+        fetchWithTiming(aInitUrl),
+      ]);
+
+      if (!vInit.ok) throw new Error(`Video init fetch failed (${vInit.status}): ${vInit.url}`);
+      if (!aInit.ok) throw new Error(`Audio init fetch failed (${aInit.status}): ${aInit.url}`);
+
+      await appendBuf(videoSB, vInit.buf);
+      await appendBuf(audioSB, aInit.buf);
+
+      const maxVideoChunks = manifest.resolutions[currentRes].chunk_count;
+      const maxAudioChunks = manifest.audio.chunk_count;
+
+      const maxChunks = Math.min(maxVideoChunks || 0, maxAudioChunks || 0);
+      log(`maxChunks video@${currentRes}: ${maxVideoChunks}, audio: ${maxAudioChunks} -> using ${maxChunks}`);
+
+      if (!maxChunks || maxChunks < 1) throw new Error("No chunks found (video/audio).");
+
+      // --- stream loop ---
       while (chunkIndex <= maxChunks) {
         const chosen = pickResolution(manifest, estThroughput);
         if (chosen !== currentRes) {
           currentRes = chosen;
           log(`Switch -> ${currentRes} (est ${estThroughput.toFixed(0)} kbps)`);
 
-          // new init for new representation (simple approach)
-          const init2Url = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
-          const init2 = await fetchWithTiming(init2Url);
-          if (!init2.ok) throw new Error(`Init fetch failed after switch (${init2.status}): ${init2.url}`);
-          await appendBuf(sourceBuffer, init2.buf);
+          // append new VIDEO init only (audio stays same)
+          const vInit2Url = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
+          const vInit2 = await fetchWithTiming(vInit2Url);
+          if (!vInit2.ok) throw new Error(`Video init fetch failed after switch (${vInit2.status}): ${vInit2.url}`);
+          await appendBuf(videoSB, vInit2.buf);
         }
 
         const iStr = String(chunkIndex).padStart(5, "0");
-        const chunkUrl = `${manifest.resolutions[currentRes].path}/chunk_${iStr}.m4s`;
-        const seg = await fetchWithTiming(chunkUrl);
-        if (!seg.ok) throw new Error(`Chunk fetch failed (${seg.status}): ${seg.url}`);
+        const vUrl = `${manifest.resolutions[currentRes].path}/chunk_${iStr}.m4s`;
+        const aUrl = `${manifest.audio.path}/chunk_${iStr}.m4s`;
 
-        estThroughput = seg.kbps;
-        log(`chunk ${chunkIndex} @${currentRes}  ${seg.bytes} bytes  ${seg.ms.toFixed(0)} ms  ~${seg.kbps.toFixed(0)} kbps`);
+        // Fetch both segments
+        const [vSeg, aSeg] = await Promise.all([
+          fetchWithTiming(vUrl),
+          fetchWithTiming(aUrl),
+        ]);
 
-        await appendBuf(sourceBuffer, seg.buf);
+        if (!vSeg.ok) throw new Error(`Video chunk fetch failed (${vSeg.status}): ${vSeg.url}`);
+        if (!aSeg.ok) throw new Error(`Audio chunk fetch failed (${aSeg.status}): ${aSeg.url}`);
+
+        // Throughput estimation based on video only
+        estThroughput = vSeg.kbps;
+
+        log(`chunk ${chunkIndex} @${currentRes}  V:${vSeg.bytes}B ${vSeg.ms.toFixed(0)}ms ~${vSeg.kbps.toFixed(0)}kbps  A:${aSeg.bytes}B ${aSeg.ms.toFixed(0)}ms`);
+
+        // Append in sequence (avoids update collisions)
+        await appendBuf(videoSB, vSeg.buf);
+        await appendBuf(audioSB, aSeg.buf);
+
         chunkIndex += 1;
         await new Promise((r) => setTimeout(r, 0));
       }
