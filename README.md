@@ -5,7 +5,6 @@
 - Custom manifest-based streaming without external libraries (dash.js / hls.js not used)
 - Adaptive bitrate selection based on real-time client network speed
 - Seamless resolution switching during playback using MediaSource API
-- Single audio track extraction and chunked audio streaming from the server
 - Synchronized audio and video playback using separate MediaSource buffers
 - Support for concurrent streaming by multiple clients
 
