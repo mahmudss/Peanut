@@ -1,9 +1,9 @@
 Project Setup
-Folder Structure
+
 # Project Setup
 
 ## Folder Structure
-
+````text
 Peanut/
 ├── server.py
 ├── web/
@@ -11,22 +11,24 @@ Peanut/
 │   ├── client.js
 │   └── sw.js
 └── storage/   # auto-created
+````
 
 
-Install Python Packages
+
+## Install Python Packages
 pip install fastapi uvicorn python-multipart
 
-Install FFmpeg (Windows, CMD Admin)
+## Install FFmpeg (Windows, CMD Admin)
 winget install --id Gyan.FFmpeg -e
 ffmpeg -version
 
-Run Server
+## Run Server
 
 From project root:
 
 uvicorn server:app --host 0.0.0.0 --port 8000
 
-Open Client
+## Open Client
 
 In browser:
 
