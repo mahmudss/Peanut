@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Peanut</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 20px auto; }
+    .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    video { width: 100%; max-width: 900px; background: #000; }
+    #log { white-space: pre-wrap; background: #f6f6f6; padding: 10px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Peanut</h2>
+
+  <div class="row">
+    <input id="file" type="file" accept="video/mp4,video/mov,video/*" />
+    <button id="btnUpload">Upload</button>
+    <button id="btnRefresh">Refresh list</button>
+    <select id="videoList"></select>
+    <button id="btnPlay">Play</button>
+  </div>
+
+  <p><small>Tip: First play downloads chunks. Seek back/replay should hit client cache (Service Worker).</small></p>
+
+  <video id="v" controls></video>
+  <h3>Log</h3>
+  <div id="log"></div>
+
+  <script src="./client.js"></script>
+</body>
+</html>
