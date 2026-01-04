@@ -1,12 +1,17 @@
 Project Setup
 Folder Structure
+# Project Setup
+
+## Folder Structure
+
 Peanut/
-  server.py
-  web/
-    index.html
-    client.js
-    sw.js
-  storage/  # auto-created
+├── server.py
+├── web/
+│   ├── index.html
+│   ├── client.js
+│   └── sw.js
+└── storage/   # auto-created
+
 
 Install Python Packages
 pip install fastapi uvicorn python-multipart
