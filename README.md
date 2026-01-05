@@ -1,12 +1,13 @@
 # Implemented Features
 
 - Client–server based video streaming with upload and playback support
-- Server-side transcoding into multiple resolutions with chunked fMP4 output
+- Server-side transcoding into multiple resolutions with chunks
 - Custom manifest-based streaming without external libraries (dash.js / hls.js not used)
 - Adaptive bitrate selection based on real-time client network speed
-- Seamless resolution switching during playback using MediaSource API
-- Synchronized audio and video playback using separate MediaSource buffers
+- Seamless resolution switching during playback
+- Synchronized audio and video playback
 - Support for concurrent streaming by multiple clients
+- Download support for original uploaded videos directly from the server
 
 # Project Setup
 
