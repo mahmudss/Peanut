@@ -1,10 +1,15 @@
 import json
 import subprocess
 import uuid
+import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+
 
 APP_DIR = Path(__file__).parent.resolve()
 STORAGE = APP_DIR / "storage"
@@ -31,6 +36,26 @@ SEG_SECONDS = 2
 # --- AUDIO SETTINGS (single audio) ---
 AUDIO_LABEL = "audio"
 AUDIO_BITRATE_KBPS = 128
+
+
+def make_video_id(filename: str) -> str:
+    name = Path(filename).stem
+    name = name.strip().lower()
+
+    # spaces/underscores -> hyphen
+    name = re.sub(r"[\s_]+", "-", name)
+
+    # add hyphen between letters<->digits boundaries (video1 -> video-1, 1video -> 1-video)
+    name = re.sub(r"([a-z])([0-9])", r"\1-\2", name)
+    name = re.sub(r"([0-9])([a-z])", r"\1-\2", name)
+
+    # remove unsafe chars (keep only a-z 0-9 and -)
+    name = re.sub(r"[^a-z0-9-]", "", name)
+
+    # collapse repeated hyphens
+    name = re.sub(r"-{2,}", "-", name).strip("-")
+
+    return name or "video"
 
 
 def run_cmd(cmd, cwd: Path):
@@ -152,7 +177,8 @@ def list_videos():
 
 @app.post("/api/upload")
 async def upload(file: UploadFile = File(...)):
-    video_id = uuid.uuid4().hex[:10]
+    video_id = make_video_id(file.filename)
+
 
     input_path = ORIGINALS / f"{video_id}_{file.filename}"
     input_path.write_bytes(await file.read())
@@ -170,3 +196,19 @@ async def upload(file: UploadFile = File(...)):
     # 3) manifest
     make_manifest(video_id, video_dir)
     return {"video_id": video_id, "manifest_url": f"/videos/{video_id}/manifest.json"}
+
+@app.get("/api/download/{video_id}")
+def download_original(video_id: str):
+    # Your originals are saved like: ORIGINALS / f"{video_id}_{file.filename}"
+    matches = sorted(ORIGINALS.glob(f"{video_id}_*"))
+
+    if not matches:
+        raise HTTPException(status_code=404, detail="Original file not found")
+
+    fpath = matches[0]  # take the first match
+    # Download "as it is in the server" -> keep server filename
+    return FileResponse(
+        path=str(fpath),
+        media_type="application/octet-stream",
+        filename=fpath.name,  # this is the server-side stored name
+    )
