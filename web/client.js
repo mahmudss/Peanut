@@ -220,3 +220,11 @@ document.getElementById("btnPlay").onclick = async () => {
 };
 
 refreshList();
+
+document.getElementById("btnDownload").onclick = async () => {
+  const id = document.getElementById("videoList").value;
+  if (!id) return alert("No video selected.");
+  const url = `/api/download/${encodeURIComponent(id)}`;
+  log(`Starting download from ${url} ...`);
+  window.location.href = url;
+};
