@@ -1,6 +1,3 @@
-/* =========================
-   Peanut - Dark (YouTube-ish)
-   ========================= */
 
 :root{
   --bg: #0f0f0f;
@@ -255,3 +252,4 @@ h3{
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; }
 }
+
