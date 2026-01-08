@@ -3,12 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <title>Peanut</title>
-  <style>
-    body { font-family: sans-serif; max-width: 900px; margin: 20px auto; }
-    .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-    video { width: 100%; max-width: 900px; background: #000; }
-    #log { white-space: pre-wrap; background: #f6f6f6; padding: 10px; border-radius: 8px; }
-  </style>
+<link rel="stylesheet" href="./style.css">
+
 </head>
 <body>
   <h2>Peanut</h2>
@@ -18,11 +14,20 @@
     <button id="btnUpload">Upload</button>
     <button id="btnRefresh">Refresh list</button>
     <select id="videoList"></select>
+    <select id="quality">
+      <option value="auto" selected>Auto</option>
+      <option value="240p">240p</option>
+      <option value="360p">360p</option>
+      <option value="480p">480p</option>
+      <option value="720p">720p</option>
+    </select>
     <button id="btnPlay">Play</button>
     <button id="btnDownload">Download</button>
   </div>
 
-  <p><small>Tip: First play downloads chunks. Seek back/replay should hit client cache (Service Worker).</small></p>
+  <div id="videoInfo" style="margin-top: 8px; font-family: sans-serif;">
+  <strong id="videoTitle">No video selected</strong><br/>
+  </div>
 
   <video id="v" controls></video>
   <h3>Log</h3>
@@ -31,4 +36,3 @@
   <script src="./client.js"></script>
 </body>
 </html>
-
