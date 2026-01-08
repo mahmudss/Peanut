@@ -99,9 +99,33 @@ async function playVideo(videoId) {
 
   const manifest = await (await fetch(`/videos/${videoId}/manifest.json`)).json();
 
-  const video = document.getElementById("v");
+  const titleEl = document.getElementById("videoTitle");
+  if (titleEl) titleEl.textContent = `Title: ${videoId}`;
 
-  // Reset element fully
+  const video = document.getElementById("v");
+  const qualitySel = document.getElementById("quality");
+
+  const BUFFER_TARGET_SECONDS = 5;
+  const BUFFER_MIN_SECONDS = 1;
+
+  function bufferedEnd(videoEl) {
+    const b = videoEl.buffered;
+    if (!b || b.length === 0) return 0;
+    return b.end(b.length - 1);
+  }
+
+  function bufferedAheadSeconds(videoEl) {
+    const end = bufferedEnd(videoEl);
+    const cur = videoEl.currentTime || 0;
+    return Math.max(0, end - cur);
+  }
+
+  async function waitForLowBuffer(videoEl, targetSeconds) {
+    while (bufferedAheadSeconds(videoEl) > targetSeconds) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+  }
+
   video.pause();
   video.removeAttribute("src");
   video.load();
@@ -117,7 +141,39 @@ async function playVideo(videoId) {
   let videoSB;
   let audioSB;
 
-  let currentRes = "360p";
+  let userMode = (qualitySel?.value || "auto").toLowerCase();
+  let userFixedRes = userMode === "auto" ? null : qualitySel.value;
+
+  function clampToAvailable(label) {
+    if (manifest.resolutions && manifest.resolutions[label]) return label;
+    const labels = Object.keys(manifest.resolutions || {});
+    return labels[0] || "360p";
+  }
+
+  function desiredResolution(throughputKbps) {
+    if (userMode !== "auto" && userFixedRes) return clampToAvailable(userFixedRes);
+    return pickResolution(manifest, throughputKbps);
+  }
+
+  if (qualitySel) {
+    qualitySel.onchange = async () => {
+      userMode = (qualitySel.value || "auto").toLowerCase();
+      userFixedRes = userMode === "auto" ? null : qualitySel.value;
+      log(`Quality -> ${userMode === "auto" ? "Auto" : userFixedRes}`);
+
+      if (userMode !== "auto") {
+        const end = bufferedEnd(video);
+        if (end > 0) {
+          const jumpTo = Math.max(video.currentTime, end - 0.25);
+          try {
+            video.currentTime = jumpTo;
+          } catch {}
+        }
+      }
+    };
+  }
+
+  let currentRes = clampToAvailable("360p");
   let chunkIndex = 1;
   let estThroughput = 1500;
 
@@ -134,21 +190,22 @@ async function playVideo(videoId) {
       videoSB = ms.addSourceBuffer(vMime);
       audioSB = ms.addSourceBuffer(aMime);
 
-      // Some browsers are happier with explicit mode
-      try { videoSB.mode = "segments"; } catch {}
-      try { audioSB.mode = "segments"; } catch {}
+      try {
+        videoSB.mode = "segments";
+      } catch {}
+      try {
+        audioSB.mode = "segments";
+      } catch {}
 
-      // --- init segments ---
+      currentRes = desiredResolution(estThroughput);
+
       const vInitUrl = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
       const aInitUrl = `${manifest.audio.path}/${manifest.init_name}`;
 
       log(`Video init: ${vInitUrl}`);
       log(`Audio init: ${aInitUrl}`);
 
-      const [vInit, aInit] = await Promise.all([
-        fetchWithTiming(vInitUrl),
-        fetchWithTiming(aInitUrl),
-      ]);
+      const [vInit, aInit] = await Promise.all([fetchWithTiming(vInitUrl), fetchWithTiming(aInitUrl)]);
 
       if (!vInit.ok) throw new Error(`Video init fetch failed (${vInit.status}): ${vInit.url}`);
       if (!aInit.ok) throw new Error(`Audio init fetch failed (${aInit.status}): ${aInit.url}`);
@@ -158,20 +215,32 @@ async function playVideo(videoId) {
 
       const maxVideoChunks = manifest.resolutions[currentRes].chunk_count;
       const maxAudioChunks = manifest.audio.chunk_count;
-
       const maxChunks = Math.min(maxVideoChunks || 0, maxAudioChunks || 0);
-      log(`maxChunks video@${currentRes}: ${maxVideoChunks}, audio: ${maxAudioChunks} -> using ${maxChunks}`);
 
+      log(`maxChunks video@${currentRes}: ${maxVideoChunks}, audio: ${maxAudioChunks} -> using ${maxChunks}`);
       if (!maxChunks || maxChunks < 1) throw new Error("No chunks found (video/audio).");
 
-      // --- stream loop ---
       while (chunkIndex <= maxChunks) {
-        const chosen = pickResolution(manifest, estThroughput);
-        if (chosen !== currentRes) {
-          currentRes = chosen;
-          log(`Switch -> ${currentRes} (est ${estThroughput.toFixed(0)} kbps)`);
+        const ahead = bufferedAheadSeconds(video);
 
-          // append new VIDEO init only (audio stays same)
+        if (ahead > BUFFER_TARGET_SECONDS) {
+          await waitForLowBuffer(video, BUFFER_TARGET_SECONDS);
+        }
+
+        if (bufferedAheadSeconds(video) < BUFFER_MIN_SECONDS) {
+          // fetch immediately
+        }
+
+        const wanted = desiredResolution(estThroughput);
+
+        if (wanted !== currentRes) {
+          currentRes = wanted;
+          log(
+            `Switch -> ${currentRes} (${
+              userMode === "auto" ? `est ${estThroughput.toFixed(0)} kbps` : "manual"
+            })`
+          );
+
           const vInit2Url = `${manifest.resolutions[currentRes].path}/${manifest.init_name}`;
           const vInit2 = await fetchWithTiming(vInit2Url);
           if (!vInit2.ok) throw new Error(`Video init fetch failed after switch (${vInit2.status}): ${vInit2.url}`);
@@ -182,21 +251,19 @@ async function playVideo(videoId) {
         const vUrl = `${manifest.resolutions[currentRes].path}/chunk_${iStr}.m4s`;
         const aUrl = `${manifest.audio.path}/chunk_${iStr}.m4s`;
 
-        // Fetch both segments
-        const [vSeg, aSeg] = await Promise.all([
-          fetchWithTiming(vUrl),
-          fetchWithTiming(aUrl),
-        ]);
+        const [vSeg, aSeg] = await Promise.all([fetchWithTiming(vUrl), fetchWithTiming(aUrl)]);
 
         if (!vSeg.ok) throw new Error(`Video chunk fetch failed (${vSeg.status}): ${vSeg.url}`);
         if (!aSeg.ok) throw new Error(`Audio chunk fetch failed (${aSeg.status}): ${aSeg.url}`);
 
-        // Throughput estimation based on video only
         estThroughput = vSeg.kbps;
 
-        log(`chunk ${chunkIndex} @${currentRes}  V:${vSeg.bytes}B ${vSeg.ms.toFixed(0)}ms ~${vSeg.kbps.toFixed(0)}kbps  A:${aSeg.bytes}B ${aSeg.ms.toFixed(0)}ms`);
+        log(
+          `chunk ${chunkIndex} @${currentRes}  V:${vSeg.bytes}B ${vSeg.ms.toFixed(0)}ms ~${vSeg.kbps.toFixed(
+            0
+          )}kbps  A:${aSeg.bytes}B ${aSeg.ms.toFixed(0)}ms`
+        );
 
-        // Append in sequence (avoids update collisions)
         await appendBuf(videoSB, vSeg.buf);
         await appendBuf(audioSB, aSeg.buf);
 
@@ -208,7 +275,9 @@ async function playVideo(videoId) {
       log("Done.");
     } catch (e) {
       log("ERROR (sourceopen): " + e.message);
-      try { ms.endOfStream(); } catch {}
+      try {
+        ms.endOfStream();
+      } catch {}
     }
   });
 }
