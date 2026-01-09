@@ -6,7 +6,9 @@
 - Adaptive bitrate selection based on real-time client network speed
 - Seamless resolution switching during playback
 - Synchronized audio and video playback
+- Shows client-side logs for chunk requests and adaptive bitrate decisions.
 - Support for concurrent streaming by multiple clients
+- Provides the option to manually select a resolution, overriding automatic bitrate adaptation.
 - Download support for original uploaded videos directly from the server
 
 # Project Setup
