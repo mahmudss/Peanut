@@ -1,3 +1,7 @@
+# Indroduction
+Peanut is a custom client–server based adaptive video streaming platform. This project gives us the opportunity to observe the internal networking logic of
+video streaming, allowing a deeper understanding of networking concepts.
+
 # Implemented Features
 
 - Client–server based video streaming with upload and playback support
