@@ -45,4 +45,4 @@ http://SERVER_IP:8000/web/index.html
 
 Use localhost if running locally.
 # Documentation
-[Doc]([https://docs.google.com/document/d/15aIy1n87Y-ngJkCs8ET_5ZO3ME1YtqPsOBtKiPxiJKQ/edit?usp=sharing](https://drive.google.com/file/d/1IpYbhQpptXV3oMpmZ-Kg0c5iWieDLL8J/view?usp=drive_link])
+[Doc]([https://drive.google.com/file/d/1IpYbhQpptXV3oMpmZ-Kg0c5iWieDLL8J/view?usp=drive_link])
