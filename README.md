@@ -49,10 +49,11 @@ In browser:
 ````
 http://SERVER_IP:8000/web/index.html
 ````
+Use localhost if running locally.
+
 ## To visibly show switching
 Open Google Chromes'- ````DevTools → Network → set throttling````
 
 
-Use localhost if running locally.
 # Documentation
 [Doc](https://drive.google.com/file/d/1IpYbhQpptXV3oMpmZ-Kg0c5iWieDLL8J/view?usp=drive_link)
