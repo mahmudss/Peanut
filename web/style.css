@@ -1,0 +1,255 @@
+
+:root{
+  --bg: #0f0f0f;
+  --panel: #181818;
+  --panel2: #1f1f1f;
+  --text: #f1f1f1;
+  --muted: #aaaaaa;
+  --border: rgba(255,255,255,.10);
+  --border2: rgba(255,255,255,.14);
+  --shadow: 0 10px 30px rgba(0,0,0,.45);
+
+  --brand: #ff0033;         /* YouTube-ish accent */
+  --brand2: #ff2a55;
+  --focus: rgba(255,0,51,.35);
+
+  --radius: 14px;
+  --radius2: 12px;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{
+  height: 100%;
+}
+
+body{
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background: radial-gradient(1200px 700px at 20% -20%, rgba(255,0,51,.10), transparent 55%),
+              radial-gradient(900px 600px at 90% 0%, rgba(255,255,255,.06), transparent 55%),
+              var(--bg);
+  color: var(--text);
+}
+
+/* Page width like a simple studio dashboard */
+body{
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 18px 14px 40px;
+}
+
+/* Header title */
+h2{
+  margin: 6px 0 14px;
+  font-size: 20px;
+  letter-spacing: .2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2::before{
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 6px rgba(255,0,51,.12);
+}
+
+/* Control bar */
+.row{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+/* Tip text */
+p small{
+  color: var(--muted);
+  display: inline-block;
+  margin: 10px 2px 14px;
+}
+
+/* Inputs */
+input[type="file"],
+select{
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 12px;
+  height: 40px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .06s ease;
+}
+
+select{
+  min-width: 180px;
+  padding-right: 34px;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 16px,
+    calc(100% - 12px) 16px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+input[type="file"]{
+  min-width: 260px;
+  padding: 8px 12px;
+}
+
+input[type="file"]::-webkit-file-upload-button{
+  margin-right: 10px;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: var(--panel2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+input[type="file"]::-webkit-file-upload-button:hover{
+  filter: brightness(1.08);
+}
+
+input[type="file"]:focus,
+select:focus{
+  border-color: rgba(255,0,51,.55);
+  box-shadow: 0 0 0 4px var(--focus);
+}
+
+/* Buttons */
+button{
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: .1px;
+  transition: transform .06s ease, filter .15s ease, border-color .15s ease, box-shadow .15s ease;
+  user-select: none;
+}
+
+button:hover{
+  filter: brightness(1.08);
+  border-color: var(--border2);
+}
+
+button:active{
+  transform: translateY(1px);
+}
+
+button:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus);
+  border-color: rgba(255,0,51,.55);
+}
+
+/* Give Upload / Play a bit more “primary” feel */
+#btnUpload, #btnPlay{
+  background: linear-gradient(180deg, var(--brand2), var(--brand));
+  border-color: rgba(255,0,51,.35);
+  box-shadow: 0 8px 20px rgba(255,0,51,.18);
+}
+
+#btnUpload:hover, #btnPlay:hover{
+  filter: brightness(1.06);
+}
+
+/* Download button subtle emphasis */
+#btnDownload{
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+}
+
+/* Video player container */
+video{
+  width: 100%;
+  max-width: 1000px;
+  margin-top: 14px;
+  border-radius: var(--radius);
+  background: #000;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Section title */
+h3{
+  margin: 18px 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+
+/* Log panel */
+#log{
+  white-space: pre-wrap;
+  background: rgba(24,24,24,.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-height: 90px;
+  box-shadow: var(--shadow);
+  color: #d8d8d8;
+  line-height: 1.45;
+}
+
+/* Nice scrollbars (Chromium/Edge) */
+#log::-webkit-scrollbar{
+  height: 10px;
+  width: 10px;
+}
+#log::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.16);
+  border-radius: 999px;
+}
+#log::-webkit-scrollbar-track{
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+
+/* Responsive: stack controls nicely */
+@media (max-width: 720px){
+  body{
+    padding: 14px 10px 30px;
+  }
+
+  .row{
+    padding: 12px;
+    gap: 10px;
+  }
+
+  input[type="file"]{
+    min-width: 100%;
+  }
+
+  select{
+    min-width: 100%;
+  }
+
+  button{
+    flex: 1 1 auto;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; }
+}
+
