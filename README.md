@@ -49,6 +49,9 @@ In browser:
 ````
 http://SERVER_IP:8000/web/index.html
 ````
+## To visibly show switching
+Open Google Chromes'- ````DevTools → Network → set throttling````
+
 
 Use localhost if running locally.
 # Documentation
