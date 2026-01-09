@@ -16,8 +16,9 @@
 Peanut/
 ├── server.py
 ├── web/
-│   ├── index.html
 │   ├── client.js
+│   ├── index.html
+│   ├── style.css
 │   └── sw.js
 └── storage/   # auto-created
 ````
